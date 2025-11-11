@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulir Pemetaan Profil Pola Pikir</title>
+    <!-- Impor Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Impor jsPDF dan plugin autoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .radio-custom {
+            appearance: none; -webkit-appearance: none; width: 1.25rem; height: 1.25rem;
+            border: 2px solid #d1d5db; border-radius: 50%; display: inline-block;
+            position: relative; cursor: pointer; margin-right: 0.5rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .radio-custom:checked { border-color: #3b82f6; background-color: #3b82f6; }
+        .radio-custom:checked::after {
+            content: ''; width: 0.5rem; height: 0.5rem; border-radius: 50%;
+            background: white; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #statusMessage, #timeUpWarning { height: 2rem; transition: opacity 0.3s ease-in-out; }
+        .hidden { display: none; }
+        .question-page { animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8 flex-col">
+    <!-- Kontainer Formulir Utama -->
+    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-lg p-6 sm:p-8 md:p-10">
+        
+        <!-- Kotak Pesan Error Global -->
+        <div id="globalError" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <strong class="font-bold">Terjadi Kesalahan!</strong>
+            <span class="block sm:inline" id="globalErrorMessage"></span>
+        </div>
+
+        <div class="text-center mb-8">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Formulir Pemetaan Profil Pola Pikir</h1>
+            <p class="text-gray-500 mt-2">Isi kuesioner untuk mengetahui profil pola pikir dan mengirim hasilnya.</p>
+        </div>
+
+        <form id="mindsetForm">
+            <!-- Bagian Identitas -->
+            <div id="identitySection">
+                <h2 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-6">Langkah 1: Isi Identitas Anda</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    
+                    <div>
+                        <label for="namaKelas" class="block text-lg font-semibold text-gray-700 mb-2">Nama Kelas</label>
+                        <input type="text" id="namaKelas" name="namaKelas" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Masukkan nama kelas Anda..." required>
+                    </div>
+                    
+                    <div>
+                        <label for="namaPeserta" class="block text-lg font-semibold text-gray-700 mb-2">Nama Lengkap</label>
+                        <input type="text" id="namaPeserta" name="namaPeserta" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Masukkan nama lengkap Anda..." required>
+                    </div>
+
+                    <div>
+                        <label for="asalSekolah" class="block text-lg font-semibold text-gray-700 mb-2">Asal Sekolah</label>
+                        <input type="text" id="asalSekolah" name="asalSekolah" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Masukkan asal sekolah Anda..." required>
+                    </div>
+
+                    <div>
+                        <label for="kabKota" class="block text-lg font-semibold text-gray-700 mb-2">Kabupaten/Kota</label>
+                        <input type="text" id="kabKota" name="kabKota" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Masukkan kabupaten/kota Anda..." required>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button type="button" id="startButton" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-transform transform hover:scale-105">
+                        Mulai Mengerjakan
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bagian Kuesioner (Awalnya tersembunyi) -->
+            <div id="quizSection" class="hidden">
+                 <div class="flex justify-between items-center mb-6 border-b pb-2">
+                    <h2 id="progressIndicator" class="text-xl font-semibold text-gray-700">Soal 1 dari 20</h2>
+                    <div id="timerDisplay" class="text-lg font-bold text-red-600 bg-red-100 px-4 py-2 rounded-lg">10:00</div>
+                </div>
+                <div id="timeUpWarning" class="hidden text-center font-bold text-white bg-red-500 p-3 rounded-lg mb-4">Waktu Habis! Harap segera selesaikan dan kirim jawaban Anda.</div>
+                
+                <div id="questionsContainer" class="relative min-h-[150px]">
+                    <!-- Pertanyaan akan dimasukkan oleh JavaScript di sini -->
+                </div>
+
+                <div class="mt-10 flex justify-between items-center">
+                    <button type="button" id="prevButton" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 transition">Kembali</button>
+                    <button type="button" id="nextButton" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition">Lanjut</button>
+                    <!-- PERUBAHAN: Teks tombol disesuaikan -->
+                    <button type="submit" id="submitButton" class="hidden bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition">Simpan Hasil & Buat PDF</button>
+                </div>
+                 <p id="statusMessage" class="text-center text-gray-600 mt-4 h-8"></p>
+            </div>
+        </form>
+    </div>
+
+    <!-- PENAMBAHAN: Bagian Rekapitulasi -->
+    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-lg p-6 sm:p-8 md:p-10 mt-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">Rekapitulasi Hasil (Real-time)</h2>
+        <div id="recapLoading" class="text-center text-gray-500">Menghubungkan ke database...</div>
+        <div id="recapContainer" class="hidden overflow-x-auto">
+            <table class="w-full min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Peserta</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asal Sekolah</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profil</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skor</th>
+                    </tr>
+                </thead>
+                <tbody id="recapTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Data akan diisi oleh JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        <p id="recapError" class="text-center text-red-500 hidden"></p>
+    </div>
+
+    <!-- PERUBAHAN: Menambahkan type="module" untuk impor Firebase -->
+    <script type="module">
+        // PENAMBAHAN: Impor Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const { jsPDF } = window.jspdf;
+        
+        // PENAMBAHAN: Variabel global Firebase
+        let db, auth;
+        let submissionsCollection;
+        // Menggunakan variabel global yang disediakan
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        const questions = [
+            { no: 1, text: "Kemampuan Anda adalah sesuatu yang sangat mendasar yang tidak banyak dapat Anda ubah lagi.", type: 'fixed' },
+            { no: 2, text: "Tidak peduli seberapapun tingkat kemampuan Anda saat ini, Anda bisa mengubahnya walaupun sedikit.", type: 'growth' },
+            { no: 3, text: "Anda akan selalu dapat mengubah kemampuan Anda", type: 'growth' },
+            { no: 4, text: "Anda adalah seseorang yang unik, tidak banyak yang dapat dilakukan untuk mengubahnya.", type: 'fixed' },
+            { no: 5, text: "Anda akan selalu dapat mengubah diri Anda sendiri", type: 'growth' },
+            { no: 6, text: "Kemampuan dalam bidang seni dan musik dapat dipelajari oleh siapapun", type: 'growth' },
+            { no: 7, text: "Hanya sedikit orang yang benar-benar mahir dalam olahraga, Anda harus membawa bakat ini sejak lahir.", type: 'fixed' },
+            { no: 8, text: "Matematika lebih mudah dipelajari oleh pria atau seseorang yang berada dalam lingkungan yang menyukainya", type: 'fixed' },
+            { no: 9, text: "Makin keras Anda mengerjakan sesuatu makin mahir Anda dalam hal ini", type: 'growth' },
+            { no: 10, text: "Tidak peduli tipe apapun Anda saat ini, Anda akan selalu dapat mengubahnya", type: 'growth' },
+            { no: 11, text: "Mencoba sesuatu yang baru akan sangat menyulitkan Anda sehingga Anda ingin menghindarinya.", type: 'fixed' },
+            { no: 12, text: "Sebagian orang baik dan pintar, sebagian lagi tidak. Tidak banyak yang dapat berubah.", type: 'fixed' },
+            { no: 13, text: "Saya sengat menghargai kritik dan saran dari siapapun juga terkait dengan kinerja saya saat ini.", type: 'growth' },
+            { no: 14, text: "Saya kurang senang bila ada kritik dan saran dari orang lain.", type: 'fixed' },
+            { no: 15, text: "Semua orang yang tanpa cacat-otak atau cacat-lahir memiliki kemampuan yang sama dalam belajar", type: 'growth' },
+            { no: 16, text: "Anda bisa mempelajari sesuatu yang baru, tapi Anda tidak bisa mengubah kemampuan Anda", type: 'fixed' },
+            { no: 17, text: "Anda dapat melakukan sesuatu secara berbeda, tapi sebenarnya Anda tetap tidak dapat mengubah kemampuan Anda", type: 'fixed' },
+            { no: 18, text: "Semua orang pada dasarnya baik, tapi kadang-kadang membuat keputusan yang salah", type: 'growth' },
+            { no: 19, text: "Alasan terpenting mengapa Anda mela-kukan pekerjaan Anda adalah keinginan untuk mempelajari sesuatu yang baru.", type: 'growth' },
+            { no: 20, text: "Orang yang benar-benar cerdas, tidak perlu bekerja keras.", type: 'fixed' }
+        ];
+
+        let currentQuestionIndex = 0;
+        let userAnswers = new Array(20).fill(null);
+        let timerInterval;
+
+        const namaKelasEl = document.getElementById('namaKelas');
+        const namaPesertaEl = document.getElementById('namaPeserta');
+        const asalSekolahEl = document.getElementById('asalSekolah');
+        const identitySection = document.getElementById('identitySection');
+        const quizSection = document.getElementById('quizSection');
+        const startButton = document.getElementById('startButton');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const timeUpWarning = document.getElementById('timeUpWarning');
+        const questionsContainer = document.getElementById('questionsContainer');
+        const progressIndicator = document.getElementById('progressIndicator');
+        const prevButton = document.getElementById('prevButton');
+        const nextButton = document.getElementById('nextButton');
+        const submitButton = document.getElementById('submitButton');
+        
+        function showGlobalError(message) {
+            const errorContainer = document.getElementById('globalError');
+            const errorMessageEl = document.getElementById('globalErrorMessage');
+            errorMessageEl.textContent = message;
+            errorContainer.classList.remove('hidden');
+        }
+
+        // ... (Fungsi renderQuestion, startTimer tidak berubah) ...
+        
+        function renderQuestion(index) {
+            const questionPages = document.querySelectorAll('.question-page');
+            questionPages.forEach(page => page.classList.add('hidden'));
+            document.getElementById(`question-page-${index}`).classList.remove('hidden');
+            progressIndicator.textContent = `Soal ${index + 1} dari 20`;
+            prevButton.classList.toggle('hidden', index === 0);
+            nextButton.classList.toggle('hidden', index === questions.length - 1);
+            submitButton.classList.toggle('hidden', index !== questions.length - 1);
+        }
+
+        questions.forEach((q, index) => {
+            const questionPage = document.createElement('div');
+            questionPage.id = `question-page-${index}`;
+            questionPage.className = 'question-page hidden';
+            questionPage.innerHTML = `
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
+                    <p class="text-base sm:text-lg font-semibold text-gray-800 mb-5">${q.no}. ${q.text}</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <label class="flex items-center cursor-pointer text-gray-700 p-3 rounded-lg hover:bg-gray-100 transition">
+                            <input type="radio" name="q${q.no}" value="Sangat Setuju" class="radio-custom">
+                            <span>Sangat Setuju</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer text-gray-700 p-3 rounded-lg hover:bg-gray-100 transition">
+                            <input type="radio" name="q${q.no}" value="Setuju" class="radio-custom">
+                            <span>Setuju</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer text-gray-700 p-3 rounded-lg hover:bg-gray-100 transition">
+                            <input type="radio" name="q${q.no}" value="Tidak Setuju" class="radio-custom">
+                            <span>Tidak Setuju</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer text-gray-700 p-3 rounded-lg hover:bg-gray-100 transition">
+                            <input type="radio" name="q${q.no}" value="Sangat Tidak Setuju" class="radio-custom">
+                            <span>Sangat Tidak Setuju</span>
+                        </label>
+                    </div>
+                </div>
+            `;
+            const radios = questionPage.querySelectorAll(`input[name="q${q.no}"]`);
+            radios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    userAnswers[index] = e.target.value;
+                });
+            });
+            questionsContainer.appendChild(questionPage);
+        });
+
+        nextButton.addEventListener('click', () => {
+            if (userAnswers[currentQuestionIndex] === null) {
+                alert('Harap pilih jawaban sebelum melanjutkan.');
+                return;
+            }
+            currentQuestionIndex++;
+            renderQuestion(currentQuestionIndex);
+        });
+
+        prevButton.addEventListener('click', () => {
+            currentQuestionIndex--;
+            renderQuestion(currentQuestionIndex);
+        });
+
+        function startTimer(duration, display) {
+            let timer = duration, minutes, seconds;
+            timerInterval = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+                display.textContent = minutes + ":" + seconds;
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    display.textContent = "00:00";
+                    timeUpWarning.classList.remove('hidden');
+                }
+            }, 1000);
+        }
+        
+        startButton.addEventListener('click', () => {
+            if (namaKelasEl.value && namaPesertaEl.value && asalSekolahEl.value && document.getElementById('kabKota').value) {
+                identitySection.classList.add('hidden');
+                quizSection.classList.remove('hidden');
+                renderQuestion(currentQuestionIndex);
+                startTimer(60 * 10, timerDisplay);
+            } else {
+                alert('Harap lengkapi semua data identitas sebelum memulai.');
+            }
+        });
+
+        // PENAMBAHAN: Fungsi Inisialisasi Firebase
+        async function initializeFirebaseAndLoadRecap() {
+            try {
+                // Pastikan variabel config ada
+                if (typeof __firebase_config === 'undefined' || typeof __app_id === 'undefined') {
+                    throw new Error("Variabel konfigurasi Firebase tidak ditemukan.");
+                }
+                
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('Debug'); // Aktifkan log untuk debug
+
+                // 1. Autentikasi
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                console.log("Firebase Auth berhasil. User UID:", auth.currentUser?.uid);
+
+                // 2. Tentukan path koleksi (gunakan path publik)
+                const collectionPath = `/artifacts/${appId}/public/data/mindsetSubmissions`;
+                submissionsCollection = collection(db, collectionPath);
+                console.log("Mendengarkan koleksi di:", collectionPath);
+
+                // 3. Atur listener untuk rekap real-time
+                setupRecapListener();
+
+            } catch (error) {
+                console.error("Kesalahan Inisialisasi Firebase:", error);
+                showGlobalError(`Gagal terhubung ke database. Fitur rekap tidak akan berfungsi. (${error.message})`);
+                document.getElementById('recapLoading').textContent = 'Gagal memuat rekap.';
+                document.getElementById('recapError').textContent = `Error: ${error.message}`;
+                document.getElementById('recapError').classList.remove('hidden');
+            }
+        }
+
+        // PENAMBAHAN: Fungsi untuk mendengarkan dan menampilkan rekap
+        function setupRecapListener() {
+            const recapLoading = document.getElementById('recapLoading');
+            const recapContainer = document.getElementById('recapContainer');
+            const recapTableBody = document.getElementById('recapTableBody');
+            const recapError = document.getElementById('recapError');
+
+            const q = query(submissionsCollection); // Query sederhana, tanpa order
+            
+            onSnapshot(q, (snapshot) => {
+                recapLoading.classList.add('hidden');
+                recapContainer.classList.remove('hidden');
+                recapTableBody.innerHTML = ''; // Kosongkan tabel sebelum diisi
+
+                if (snapshot.empty) {
+                    recapTableBody.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">Belum ada data yang masuk.</td></tr>';
+                    return;
+                }
+
+                let submissions = [];
+                snapshot.forEach(doc => {
+                    submissions.push(doc.data());
+                });
+
+                // Urutkan data di sisi klien (JavaScript) berdasarkan nama
+                submissions.sort((a, b) => a.namaPeserta.localeCompare(b.namaPeserta));
+
+                submissions.forEach(data => {
+                    const row = document.createElement('tr');
+                    // Pastikan data tidak undefined
+                    const nama = data.namaPeserta || 'N/A';
+                    const sekolah = data.asalSekolah || 'N/A';
+                    const profil = data.profilPolaPikir || 'N/A';
+                    const skor = data.totalSkor !== undefined ? data.totalSkor : 'N/A';
+                    
+                    row.innerHTML = `
+                        <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${nama}</td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">${sekolah}</td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">${profil}</td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">${skor}</td>
+                    `;
+                    recapTableBody.appendChild(row);
+                });
+
+            }, (error) => {
+                console.error("Kesalahan Snapshot Rekap:", error);
+                recapLoading.classList.add('hidden');
+                recapError.textContent = `Gagal memuat data rekap real-time: ${error.message}`;
+                recapError.classList.remove('hidden');
+            });
+        }
+
+        // PERUBAHAN: Fungsi submit diubah menjadi 'async'
+        document.getElementById('mindsetForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            if (userAnswers[currentQuestionIndex] === null) {
+                alert('Harap pilih jawaban untuk pertanyaan terakhir sebelum mengirim.');
+                return;
+            }
+            
+            const unanswered = userAnswers.filter(answer => answer === null);
+            if (unanswered.length > 0) {
+                 alert(`Anda belum menjawab ${unanswered.length} soal. Harap periksa kembali semua jawaban Anda.`);
+                 return;
+            }
+
+            clearInterval(timerInterval);
+            submitButton.disabled = true;
+            document.getElementById('statusMessage').textContent = 'Memproses data...';
+
+            const namaKelas = namaKelasEl.value;
+            const namaPeserta = namaPesertaEl.value;
+            const asalSekolah = asalSekolahEl.value;
+            const kabKota = document.getElementById('kabKota').value;
+
+            // ... (Logika skor tidak berubah) ...
+            let totalScore = 0;
+            userAnswers.forEach((answer, index) => {
+                const questionType = questions[index].type;
+                let score = 0;
+                if (questionType === 'fixed') {
+                    if (answer === 'Sangat Setuju') score = 0;
+                    else if (answer === 'Setuju') score = 1;
+                    else if (answer === 'Tidak Setuju') score = 2;
+                    else if (answer === 'Sangat Tidak Setuju') score = 3;
+                } else { // type === 'growth'
+                    if (answer === 'Sangat Setuju') score = 3;
+                    else if (answer === 'Setuju') score = 2;
+                    else if (answer === 'Tidak Setuju') score = 1;
+                    else if (answer === 'Sangat Tidak Setuju') score = 0;
+                }
+                totalScore += score;
+            });
+            
+            let profilPolaPikir = '';
+            if (totalScore <= 20) profilPolaPikir = 'Pola Pikir Tetap (F)';
+            else if (totalScore <= 33) profilPolaPikir = 'Pola Pikir Tetap-Bertumbuh (FG)';
+            else if (totalScore <= 44) profilPolaPikir = 'Pola Pikir Bertumbuh-Tetap (GF)';
+            else profilPolaPikir = 'Pola Pikir Bertumbuh (G)'; // 45-60
+
+            // PERUBAHAN: Menyimpan ke Firestore
+            document.getElementById('statusMessage').textContent = 'Menyimpan hasil ke database...';
+            try {
+                if (!submissionsCollection) {
+                    throw new Error("Koneksi database belum siap. Coba lagi sesaat.");
+                }
+                
+                const dataToSend = {
+                    namaKelas: namaKelas,
+                    namaPeserta: namaPeserta,
+                    asalSekolah: asalSekolah,
+                    kabKota: kabKota,
+                    totalSkor: totalScore,
+                    profilPolaPikir: profilPolaPikir,
+                    submittedAt: serverTimestamp() // Tambahkan timestamp
+                };
+                
+                // Simpan data ke firestore
+                await addDoc(submissionsCollection, dataToSend);
+                
+                document.getElementById('statusMessage').textContent = '✅ Hasil tersimpan! Membuat PDF...';
+
+            } catch (error) {
+                console.error('Gagal menyimpan ke Firestore:', error);
+                document.getElementById('statusMessage').textContent = `⚠️ Gagal menyimpan. ${error.message}`;
+                // Tetap lanjutkan untuk membuat PDF meskipun gagal simpan
+            }
+
+            // ... (Fungsi generatePDF tetap dipanggil) ...
+            const jawabanDataForPdf = questions.map((q, i) => ({...q, jawaban: userAnswers[i]}));
+            generatePDF(namaKelas, namaPeserta, asalSekolah, kabKota, totalScore, profilPolaPikir, jawabanDataForPdf);
+            submitButton.disabled = false;
+            document.getElementById('statusMessage').textContent = 'PDF telah diunduh.';
+        });
+        
+        // ... (Fungsi generatePDF tidak berubah) ...
+        function generatePDF(namaKelas, nama, sekolah, kota, totalSkor, profil, jawabanData) {
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text('Hasil Pemetaan Profil Pola Pikir', pageWidth / 2, 20, { align: 'center' });
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Nama Kelas: ${namaKelas}`, 15, 40);
+            doc.text(`Nama Peserta: ${nama}`, 15, 47);
+            doc.text(`Asal Sekolah: ${sekolah}`, 15, 54);
+            doc.text(`Kab./Kota: ${kota}`, 15, 61);
+            doc.text(`Tanggal Tes: ${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, 68);
+            doc.setLineWidth(0.5);
+            doc.line(15, 75, pageWidth - 15, 75);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text('Hasil Analisis', 15, 85);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(12);
+            doc.text(`- Total Skor: ${totalSkor} (dari maks 60)`, 15, 95);
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setFillColor(230, 247, 255);
+            doc.rect(15, 103, pageWidth - 30, 12, 'F');
+            doc.text(`Profil Anda: ${profil}`, 20, 111);
+
+            const tableHead = [['No.', 'Pernyataan', 'Sangat Setuju', 'Setuju', 'Tidak Setuju', 'Sangat Tdk Setuju']];
+            const tableBody = jawabanData.map(item => [
+                item.no, 
+                item.text, 
+                item.jawaban === 'Sangat Setuju' ? 'X' : '', 
+                item.jawaban === 'Setuju' ? 'X' : '', 
+                item.jawaban === 'Tidak Setuju' ? 'X' : '', 
+                item.jawaban === 'Sangat Tidak Setuju' ? 'X' : ''
+            ]);
+
+            doc.autoTable({
+                head: tableHead,
+                body: tableBody,
+                startY: 125,
+                theme: 'grid',
+                styles: { font: 'helvetica', fontSize: 9, cellPadding: 2 },
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+                columnStyles: { 
+                    0: { cellWidth: 8, halign: 'center' }, 
+                    1: { cellWidth: 'auto' }, 
+                    2: { cellWidth: 18, halign: 'center' }, 
+                    3: { cellWidth: 18, halign: 'center' }, 
+                    4: { cellWidth: 18, halign: 'center' }, 
+                    5: { cellWidth: 22, halign: 'center' } 
+                },
+                didDrawCell: data => { if (data.row.index % 2 === 0) data.cell.styles.fillColor = [245, 245, 245]; }
+            });
+            doc.save(`MODUL 1_KP 1_${nama.replace(/\s/g, '_')}.pdf`);
+        }
+
+        // PENAMBAHAN: Panggil inisialisasi Firebase saat halaman dimuat
+        window.addEventListener('load', initializeFirebaseAndLoadRecap);
+
+    </script>
+</body>
+</html>
