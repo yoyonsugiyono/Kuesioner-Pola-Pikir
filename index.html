@@ -134,11 +134,24 @@
 
         const { jsPDF } = window.jspdf;
         
+        // =========================================================================
+        // PERHATIAN: Salin-tempel (paste) konfigurasi Firebase Anda di sini
+        // =========================================================================
+        const firebaseConfig = {
+  apiKey: "AIzaSyDzc7wBYc3LOpKJgAcEkKztFGV3_eB9BN4",
+  authDomain: "kuesioner-pola-pikir.firebaseapp.com",
+  projectId: "kuesioner-pola-pikir",
+  storageBucket: "kuesioner-pola-pikir.firebasestorage.app",
+  messagingSenderId: "548291982079",
+  appId: "1:548291982079:web:da1defb7b4b75110c392ca"
+};
+        // =========================================================================
+
         // PENAMBAHAN: Variabel global Firebase
         let db, auth;
         let submissionsCollection;
-        // Menggunakan variabel global yang disediakan
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // Variabel appId dihapus karena tidak lagi tersedia
+        // const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         const questions = [
             { no: 1, text: "Kemampuan Anda adalah sesuatu yang sangat mendasar yang tidak banyak dapat Anda ubah lagi.", type: 'fixed' },
@@ -280,27 +293,34 @@
         // PENAMBAHAN: Fungsi Inisialisasi Firebase
         async function initializeFirebaseAndLoadRecap() {
             try {
-                // Pastikan variabel config ada
-                if (typeof __firebase_config === 'undefined' || typeof __app_id === 'undefined') {
-                    throw new Error("Variabel konfigurasi Firebase tidak ditemukan.");
+                // PERUBAHAN: Tambahkan pengecekan untuk placeholder API Key
+                if (firebaseConfig.apiKey === "AIzaSy..." || firebaseConfig.projectId === "YOUR-PROJECT-ID") {
+                    throw new Error("Konfigurasi Firebase belum diisi. Harap salin-tempel konfigurasi proyek Anda ke dalam variabel 'firebaseConfig' di file index.html.");
                 }
                 
-                const firebaseConfig = JSON.parse(__firebase_config);
+                // PERUBAHAN: Gunakan objek firebaseConfig lokal
+                // const firebaseConfig = JSON.parse(__firebase_config);
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
                 setLogLevel('Debug'); // Aktifkan log untuk debug
 
                 // 1. Autentikasi
+                // PERUBAHAN: Hapus logika custom token, langsung sign in anonim
+                /*
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
-                console.log("Firebase Auth berhasil. User UID:", auth.currentUser?.uid);
+                */
+                await signInAnonymously(auth);
+                console.log("Firebase Auth berhasil (Anonim). User UID:", auth.currentUser?.uid);
 
                 // 2. Tentukan path koleksi (gunakan path publik)
-                const collectionPath = `/artifacts/${appId}/public/data/mindsetSubmissions`;
+                // PERUBAHAN: Sederhanakan path koleksi
+                // const collectionPath = `/artifacts/${appId}/public/data/mindsetSubmissions`;
+                const collectionPath = `mindsetSubmissions`;
                 submissionsCollection = collection(db, collectionPath);
                 console.log("Mendengarkan koleksi di:", collectionPath);
 
